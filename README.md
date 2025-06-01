@@ -60,4 +60,8 @@ int main() {
     std::cout << "내 위치 (좌표):\n";
     std::cout << "X = " << x << "\n";
     std::cout << "Y = " << y << "\n";
-    std::cout << "Z = " << z
+    std::cout << "Z = " << z << "\n";
+
+    CloseHandle(hProc);
+    return 0;
+}
