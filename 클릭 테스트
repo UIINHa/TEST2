@@ -1,12 +1,105 @@
-for (int i = 0; i < 32; ++i) {
-    DWORD entityPtr = 0;
-    ReadProcessMemory(hProc, (LPCVOID)(0x50F4F8 + i * 4), &entityPtr, sizeof(DWORD), NULL);
+#include <windows.h>
+#include <iostream>
+#include <thread>
+#include <cmath>
+#include <iomanip>
 
-    std::cout << "entity[" << i << "] = 0x" << std::hex << entityPtr << std::dec << "\n";
+// 메모리 주소 및 오프셋
+#define ENTITY_LIST      0x50F4F8   // CBasePlayer* 배열
+#define MY_PLAYER_PTR    0x509B74   // 내 플레이어 포인터 주소
+#define PLAYER_X         0x04
+#define PLAYER_Y         0x08
+#define PLAYER_Z         0x0C
+#define PLAYER_HP        0xF8
+#define PLAYER_TEAM      0x32C
+#define MAX_PLAYERS      32
+#define MAX_RANGE        5.0f       // 사격 거리 제한
+#define SCAN_DELAY       100        // 100ms마다 검사
 
-    if (entityPtr != 0) {
-        int hp = 0;
-        ReadProcessMemory(hProc, (LPCVOID)(entityPtr + 0xF8), &hp, sizeof(int), NULL);
-        std::cout << "  HP: " << hp << "\n";
+// 마우스 클릭 함수
+void AutoShoot() {
+    INPUT input = {0};
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    SendInput(1, &input, sizeof(INPUT));
+
+    ZeroMemory(&input, sizeof(INPUT));
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    SendInput(1, &input, sizeof(INPUT));
+}
+
+// 거리 계산 함수
+float Distance(float x1, float y1, float z1, float x2, float y2, float z2) {
+    return sqrtf(powf(x2 - x1, 2) + powf(y2 - y1, 2) + powf(z2 - z1, 2));
+}
+
+int main() {
+    HWND hwnd = FindWindowA(NULL, "AssaultCube");
+    if (!hwnd) {
+        std::cout << "AssaultCube 창을 찾을 수 없습니다.\n";
+        return 1;
     }
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    HANDLE hProc = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, FALSE, pid);
+    if (!hProc) {
+        std::cout << "프로세스를 열 수 없습니다.\n";
+        return 1;
+    }
+
+    DWORD myPlayerBase = 0;
+    ReadProcessMemory(hProc, (LPCVOID)MY_PLAYER_PTR, &myPlayerBase, sizeof(DWORD), NULL);
+    if (myPlayerBase == 0) {
+        std::cout << "내 플레이어 주소를 찾을 수 없습니다.\n";
+        return 1;
+    }
+
+    std::cout << std::fixed << std::setprecision(2);
+
+    while (true) {
+        // 내 좌표, 팀
+        float myX = 0, myY = 0, myZ = 0;
+        int myTeam = 0;
+        ReadProcessMemory(hProc, (LPCVOID)(myPlayerBase + PLAYER_X), &myX, sizeof(float), NULL);
+        ReadProcessMemory(hProc, (LPCVOID)(myPlayerBase + PLAYER_Y), &myY, sizeof(float), NULL);
+        ReadProcessMemory(hProc, (LPCVOID)(myPlayerBase + PLAYER_Z), &myZ, sizeof(float), NULL);
+        ReadProcessMemory(hProc, (LPCVOID)(myPlayerBase + PLAYER_TEAM), &myTeam, sizeof(int), NULL);
+
+        system("cls");
+        std::cout << "[내 위치] X: " << myX << "  Y: " << myY << "  Z: " << myZ << "  팀: " << myTeam << "\n\n";
+
+        for (int i = 0; i < MAX_PLAYERS; ++i) {
+            DWORD entityPtr = 0;
+            ReadProcessMemory(hProc, (LPCVOID)(ENTITY_LIST + i * 4), &entityPtr, sizeof(DWORD), NULL);
+
+            if (entityPtr == 0 || entityPtr == myPlayerBase) continue;
+
+            float x = 0, y = 0, z = 0;
+            int hp = 0, team = 0;
+            ReadProcessMemory(hProc, (LPCVOID)(entityPtr + PLAYER_X), &x, sizeof(float), NULL);
+            ReadProcessMemory(hProc, (LPCVOID)(entityPtr + PLAYER_Y), &y, sizeof(float), NULL);
+            ReadProcessMemory(hProc, (LPCVOID)(entityPtr + PLAYER_Z), &z, sizeof(float), NULL);
+            ReadProcessMemory(hProc, (LPCVOID)(entityPtr + PLAYER_HP), &hp, sizeof(int), NULL);
+            ReadProcessMemory(hProc, (LPCVOID)(entityPtr + PLAYER_TEAM), &team, sizeof(int), NULL);
+
+            if (hp <= 0 || team == myTeam) continue;
+
+            float dist = Distance(myX, myY, myZ, x, y, z);
+            std::cout << "적 #" << i << " | Addr: 0x" << std::hex << entityPtr << std::dec
+                      << " | HP: " << hp << " | 팀: " << team
+                      << " | 거리: " << dist << "\n";
+
+            if (dist < MAX_RANGE) {
+                std::cout << ">>> 적 탐지! 자동 사격!\n";
+                AutoShoot();
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(SCAN_DELAY));
+    }
+
+    CloseHandle(hProc);
+    return 0;
 }
