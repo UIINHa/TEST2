@@ -1,0 +1,10 @@
+uintptr_t ammoPtrAddr = 0x00FEA398;
+uintptr_t zPtrAddr    = 0x00FEA254;
+
+DWORD playerFromAmmo = 0, playerFromZ = 0;
+
+ReadProcessMemory(hProc, (LPCVOID)ammoPtrAddr, &playerFromAmmo, sizeof(DWORD), NULL);
+ReadProcessMemory(hProc, (LPCVOID)zPtrAddr,    &playerFromZ,    sizeof(DWORD), NULL);
+
+std::cout << "탄약 포인터가 가리키는 주소: 0x" << std::hex << playerFromAmmo << "\n";
+std::cout << "Z포인터가 가리키는 주소:     0x" << std::hex << playerFromZ << "\n";
