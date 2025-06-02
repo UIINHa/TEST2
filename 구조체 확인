@@ -18,25 +18,20 @@ int main() {
         return 1;
     }
 
-    // 포인터 주소
-    uintptr_t zPtrAddr = 0x00FEA254;     // Z 좌표 포인터
-    uintptr_t ammoAddr = 0x00FEA398;     // 탄약 값 직접 저장된 주소
-
-    DWORD playerBase = 0;
-    ReadProcessMemory(hProc, (LPCVOID)zPtrAddr, &playerBase, sizeof(DWORD), NULL);
-
-    std::cout << std::hex;
-    std::cout << "[playerBase 주소] 0x" << playerBase << "\n\n";
-
-    float x = 0, y = 0, z = 0;
+    // Z 좌표 주소와 탄약 주소 (float, int)
+    float x = 0.0f, y = 0.0f, z = 0.0f;
     int ammo = 0;
 
-    // 좌표 읽기
-    ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x04), &x, sizeof(float), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x08), &y, sizeof(float), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x0C), &z, sizeof(float), NULL);
+    // 실제 좌표를 담고 있는 정적 주소들 (직접 Cheat Engine으로 검증 필요)
+    uintptr_t zAddr    = 0x00FEA254;
+    uintptr_t yAddr    = 0x00FEA250;
+    uintptr_t xAddr    = 0x00FEA24C;
+    uintptr_t ammoAddr = 0x00FEA398;
 
-    // 탄약은 구조체 내 오프셋이 아니라 고정 주소에서 직접 읽기
+    // 메모리 읽기
+    ReadProcessMemory(hProc, (LPCVOID)xAddr, &x, sizeof(float), NULL);
+    ReadProcessMemory(hProc, (LPCVOID)yAddr, &y, sizeof(float), NULL);
+    ReadProcessMemory(hProc, (LPCVOID)zAddr, &z, sizeof(float), NULL);
     ReadProcessMemory(hProc, (LPCVOID)ammoAddr, &ammo, sizeof(int), NULL);
 
     std::cout << std::fixed << std::setprecision(2);
@@ -44,7 +39,7 @@ int main() {
     std::cout << "  X = " << x << "\n";
     std::cout << "  Y = " << y << "\n";
     std::cout << "  Z = " << z << "\n\n";
-    std::cout << "탄약 수 (전역): " << ammo << "\n";
+    std::cout << "탄약 수: " << ammo << "\n";
 
     CloseHandle(hProc);
     return 0;
