@@ -1,0 +1,39 @@
+#include <windows.h>
+#include <iostream>
+#include <thread>
+#include <cmath>
+
+void AutoShoot() {
+    // 마우스 왼쪽 클릭 이벤트
+    INPUT input = {0};
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    SendInput(1, &input, sizeof(INPUT));
+
+    ZeroMemory(&input, sizeof(INPUT));
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    SendInput(1, &input, sizeof(INPUT));
+}
+
+int main() {
+    // 샘플 위치 (내 위치를 기준)
+    float myX = 100.0f, myY = 200.0f, myZ = 300.0f;
+    float targetX = 100.5f, targetY = 200.2f, targetZ = 300.1f;
+
+    float dx = targetX - myX;
+    float dy = targetY - myY;
+    float dz = targetZ - myZ;
+    float distance = sqrt(dx*dx + dy*dy + dz*dz);
+
+    std::cout << "타겟과 거리: " << distance << "\n";
+
+    if (distance < 3.0f) {
+        std::cout << "타겟이 근처에 있습니다. 사격합니다.\n";
+        AutoShoot();
+    } else {
+        std::cout << "타겟이 너무 멉니다.\n";
+    }
+
+    return 0;
+}
