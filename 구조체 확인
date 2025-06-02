@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <iostream>
 #include <iomanip>
+#include <thread>  // for sleep
 
 int main() {
     HWND hwnd = FindWindowA(NULL, "AssaultCube");
@@ -18,28 +19,37 @@ int main() {
         return 1;
     }
 
-    // Z 좌표 주소와 탄약 주소 (float, int)
+    // 좌표 및 탄약 주소 (float, int)
+    uintptr_t xAddr    = 0x00FEA24C;
+    uintptr_t yAddr    = 0x00FEA250;
+    uintptr_t zAddr    = 0x00FEA254;
+    uintptr_t ammoAddr = 0x00FEA398;
+
     float x = 0.0f, y = 0.0f, z = 0.0f;
     int ammo = 0;
 
-    // 실제 좌표를 담고 있는 정적 주소들 (직접 Cheat Engine으로 검증 필요)
-    uintptr_t zAddr    = 0x00FEA254;
-    uintptr_t yAddr    = 0x00FEA250;
-    uintptr_t xAddr    = 0x00FEA24C;
-    uintptr_t ammoAddr = 0x00FEA398;
-
-    // 메모리 읽기
-    ReadProcessMemory(hProc, (LPCVOID)xAddr, &x, sizeof(float), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)yAddr, &y, sizeof(float), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)zAddr, &z, sizeof(float), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)ammoAddr, &ammo, sizeof(int), NULL);
-
     std::cout << std::fixed << std::setprecision(2);
-    std::cout << "내 위치:\n";
-    std::cout << "  X = " << x << "\n";
-    std::cout << "  Y = " << y << "\n";
-    std::cout << "  Z = " << z << "\n\n";
-    std::cout << "탄약 수: " << ammo << "\n";
+
+    while (true) {
+        // 값 읽기
+        ReadProcessMemory(hProc, (LPCVOID)xAddr, &x, sizeof(float), NULL);
+        ReadProcessMemory(hProc, (LPCVOID)yAddr, &y, sizeof(float), NULL);
+        ReadProcessMemory(hProc, (LPCVOID)zAddr, &z, sizeof(float), NULL);
+        ReadProcessMemory(hProc, (LPCVOID)ammoAddr, &ammo, sizeof(int), NULL);
+
+        // 콘솔 클리어 (Windows 전용 방식)
+        system("cls");
+
+        // 출력
+        std::cout << "현재 위치:\n";
+        std::cout << "  X = " << x << "\n";
+        std::cout << "  Y = " << y << "\n";
+        std::cout << "  Z = " << z << "\n\n";
+        std::cout << "남은 탄약 수: " << ammo << "\n";
+
+        // 100ms 대기
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     CloseHandle(hProc);
     return 0;
