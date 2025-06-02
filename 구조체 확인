@@ -18,44 +18,33 @@ int main() {
         return 1;
     }
 
-    // 포인터 주소 (Cheat Engine 기준)
-    uintptr_t zPtrAddr = 0x00FEA254;     // 높이(Z) 좌표를 가리키는 포인터
-    uintptr_t ammoPtrAddr = 0x00FEA398;  // 탄약 수를 가리키는 포인터
+    // 포인터 주소
+    uintptr_t zPtrAddr = 0x00FEA254;     // Z 좌표 포인터
+    uintptr_t ammoAddr = 0x00FEA398;     // 탄약 값 직접 저장된 주소
 
-    // 플레이어 구조체 주소
-    DWORD playerBase1 = 0, playerBase2 = 0;
-    ReadProcessMemory(hProc, (LPCVOID)zPtrAddr, &playerBase1, sizeof(DWORD), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)ammoPtrAddr, &playerBase2, sizeof(DWORD), NULL);
+    DWORD playerBase = 0;
+    ReadProcessMemory(hProc, (LPCVOID)zPtrAddr, &playerBase, sizeof(DWORD), NULL);
 
     std::cout << std::hex;
-    std::cout << "[확인] Z 포인터가 가리키는 주소:    0x" << playerBase1 << "\n";
-    std::cout << "[확인] 탄약 포인터가 가리키는 주소: 0x" << playerBase2 << "\n\n";
+    std::cout << "[playerBase 주소] 0x" << playerBase << "\n\n";
 
-    // 두 포인터가 동일한 구조체를 가리키는지 확인
-    if (playerBase1 != playerBase2) {
-        std::cout << "[오류] 두 포인터가 서로 다른 구조체를 가리킵니다.\n";
-        CloseHandle(hProc);
-        return 1;
-    }
-
-    DWORD playerBase = playerBase1;
-
-    // 좌표 및 탄약 수 읽기
-    float x, y, z;
+    float x = 0, y = 0, z = 0;
     int ammo = 0;
 
+    // 좌표 읽기
     ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x04), &x, sizeof(float), NULL);
     ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x08), &y, sizeof(float), NULL);
     ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x0C), &z, sizeof(float), NULL);
-    ReadProcessMemory(hProc, (LPCVOID)(playerBase + 0x134), &ammo, sizeof(int), NULL);
+
+    // 탄약은 구조체 내 오프셋이 아니라 고정 주소에서 직접 읽기
+    ReadProcessMemory(hProc, (LPCVOID)ammoAddr, &ammo, sizeof(int), NULL);
 
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "내 위치:\n";
     std::cout << "  X = " << x << "\n";
     std::cout << "  Y = " << y << "\n";
     std::cout << "  Z = " << z << "\n\n";
-
-    std::cout << "남은 탄약 수: " << ammo << "\n";
+    std::cout << "탄약 수 (전역): " << ammo << "\n";
 
     CloseHandle(hProc);
     return 0;
